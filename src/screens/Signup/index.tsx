@@ -77,10 +77,6 @@ const InputBox = styled.TextInput`
   font-size: ${({theme}) => theme.fontSmall};
   line-height: ${({theme}) => theme.lineHeightMicro};
   font-family: 'NotoSansKR-Medium';
-
-  &::placeholder {
-    color: ${({theme}) => theme.grayOne};
-  }
 `;
 
 const ErrorMsg = styled.Text`

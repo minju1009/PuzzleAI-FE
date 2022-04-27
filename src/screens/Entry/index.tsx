@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components/native';
-<<<<<<< HEAD
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import LoginSigunupBtn from 'components/LoginSignupBtn';
 import logo from './../../assets/images/logo.png';
@@ -36,33 +35,6 @@ const Entry = ({navigation}: EntryProps) => {
           textColor="#004d73"
           onPress={onPress('Signup')}
         />
-=======
-import LoginBtn from 'components/LoginBtn';
-import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  Entry: undefined;
-  Signup: undefined;
-};
-
-type Props = NativeStackScreenProps<RootStackParamList, 'Entry'>;
-
-const Entry = ({navigation}: Props) => {
-  return (
-    <ScreenContainer>
-      <LogoContainer>
-        <Logo
-          source={require('/Users/kimminju/Desktop/puzzleAI/Puzzleai/src/assets/images/logo_o.png')}
-        />
-      </LogoContainer>
-      <BtnContainer>
-        <LoginBtn />
-        <SignUpBtn>
-          <SignUpText onPress={() => navigation.navigate('Signup')}>
-            회원가입
-          </SignUpText>
-        </SignUpBtn>
->>>>>>> 8e6c8ec5440064d2212b8b247e71c45a07f90de1
       </BtnContainer>
     </ScreenContainer>
   );
@@ -91,21 +63,3 @@ const Logo = styled.Image`
   height: 60px;
   margin: 0 auto;
 `;
-<<<<<<< HEAD
-=======
-
-const SignUpBtn = styled.TouchableOpacity`
-  margin-bottom: 15px;
-  border-radius: 8px;
-  border: 1px solid ${({theme}) => theme.primary};
-  background-color: white;
-`;
-
-const SignUpText = styled.Text`
-  padding: 12px 0;
-  color: ${({theme}) => theme.secondary};
-  text-align: center;
-  font-family: 'NotoSansKR-Bold';
-  font-size: ${({theme}) => theme.fontRegular};
-`;
->>>>>>> 8e6c8ec5440064d2212b8b247e71c45a07f90de1
