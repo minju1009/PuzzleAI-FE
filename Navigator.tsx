@@ -21,7 +21,7 @@ type RootStackParamList = {
 const Navigator = () => {
   return (
     <NavigationContainer>
-      <RootStack.Navigator initialRouteName="Splash">
+      <RootStack.Navigator initialRouteName="Entry">
         <RootStack.Screen
           name="Splash"
           component={Splash}

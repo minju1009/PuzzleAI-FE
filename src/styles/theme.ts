@@ -1,10 +1,15 @@
 import {DefaultTheme} from 'styled-components/native';
 
 const theme: DefaultTheme = {
-  mainBlue: '#065e85',
-  mainDarkGrey: '#3e3e3e',
-  mainLightGrey: '#c4c4c4',
-  mainRed: '#e01e1e',
+  primary: '#065e85',
+  secondary: '#004d73',
+  black: '#000000',
+  white: '#ffffff',
+  grayOne: '#c4c4c4',
+  grayTwo: '#3e3e3e',
+  grayThree: '#777777',
+  redOne: '#e01e1e',
+  redTwo: '#d60f0f',
 
   fontLarge: '26px',
   fontMedium: '22px',

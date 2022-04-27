@@ -28,7 +28,7 @@ const Container = styled.View`
   flex: 1;
   align-items: center;
   justify-content: center;
-  background-color: ${({theme}) => theme.mainBlue};
+  background-color: ${({theme}) => theme.primary};
 `;
 
 const MainText = styled.Text`

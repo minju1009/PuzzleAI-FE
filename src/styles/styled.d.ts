@@ -2,10 +2,15 @@ import 'styled-components';
 
 declare module 'styled-components' {
   export interface DefaultTheme {
-    mainBlue: string;
-    mainDarkGrey: string;
-    mainLightGrey: string;
-    mainRed: string;
+    primary: string;
+    secondary: string;
+    black: string;
+    white: string;
+    grayOne: string;
+    grayTwo: string;
+    grayThree: string;
+    redOne: string;
+    redTwo: string;
 
     fontLarge: string;
     fontMedium: string;
