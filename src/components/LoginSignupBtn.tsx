@@ -1,33 +1,21 @@
 import React from 'react';
-import {Platform} from 'react-native';
+import {GestureResponderEvent} from 'react-native';
 import styled, {css} from 'styled-components/native';
 
 interface LoginSignupBtnProps {
-  text: string;
-  bgColor: string;
-  textColor: string;
-  borderColor?: string;
-  onPress?: any;
+  id: string;
+  children: JSX.Element;
+  navigate: (event: GestureResponderEvent) => void;
 }
 
 interface ButtonProps {
-  bgColor: string;
-  borderColor: string;
+  id: string;
 }
 
-interface TextProps {
-  textColor: string;
-}
-
-const LoginSignupBtn = ({
-  text,
-  bgColor,
-  textColor,
-  borderColor,
-}: LoginSignupBtnProps) => {
+const LoginSignupBtn = ({navigate, children, id}: LoginSignupBtnProps) => {
   return (
-    <Button bgColor={bgColor} borderColor={borderColor ?? bgColor}>
-      <Text textColor={textColor}>{text}</Text>
+    <Button id={id} onPress={navigate}>
+      {children}
     </Button>
   );
 };
@@ -37,19 +25,14 @@ export default LoginSignupBtn;
 const Button = styled.TouchableOpacity<ButtonProps>`
   width: 100%;
   margin-bottom: 15px;
-  border: 1px solid ${({borderColor}) => borderColor};
   border-radius: 8px;
-  background-color: ${({bgColor}) => bgColor};
-`;
-
-const Text = styled.Text<TextProps>`
-  ${Platform.select({
-    ios: css`
-      padding: 12px;
-    `,
-  })}
-  color: ${({textColor}) => textColor};
-  text-align: center;
-  font-size: ${({theme}) => theme.fontRegular};
-  font-family: 'NotoSansKR-Bold';
+  ${({id}) =>
+    id === 'login'
+      ? css`
+          background-color: ${({theme}) => theme.primary};
+        `
+      : css`
+          background-color: ${({theme}) => theme.white};
+          border: 1px solid ${({theme}) => theme.primary};
+        `}
 `;

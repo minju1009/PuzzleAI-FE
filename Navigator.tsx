@@ -8,15 +8,7 @@ import Main from 'screens/Main';
 import Signup from 'screens/Signup';
 import Video from 'screens/VideoScreen';
 
-const RootStack = createNativeStackNavigator<RootStackParamList>();
-export type RootStackParamList = {
-  Splash: undefined;
-  Entry: undefined;
-  Login: undefined;
-  Main: undefined;
-  Signup: undefined;
-  Video: undefined;
-};
+const RootStack = createNativeStackNavigator();
 
 const Navigator = () => {
   return (
