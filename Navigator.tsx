@@ -8,20 +8,12 @@ import Main from 'screens/Main';
 import Signup from 'screens/Signup';
 import Video from 'screens/VideoScreen';
 
-const RootStack = createNativeStackNavigator<RootStackParamList>();
-type RootStackParamList = {
-  Splash: undefined;
-  Entry: undefined;
-  Login: undefined;
-  Main: undefined;
-  Signup: undefined;
-  Video: undefined;
-};
+const RootStack = createNativeStackNavigator();
 
 const Navigator = () => {
   return (
     <NavigationContainer>
-      <RootStack.Navigator initialRouteName="Splash">
+      <RootStack.Navigator initialRouteName="Entry">
         <RootStack.Screen
           name="Splash"
           component={Splash}
@@ -45,7 +37,7 @@ const Navigator = () => {
         <RootStack.Screen
           name="Signup"
           component={Signup}
-          options={{headerShown: false}}
+          options={{title: '회원가입', headerTitleAlign: 'center'}}
         />
         <RootStack.Screen
           name="Video"
