@@ -22,17 +22,18 @@ const LoginSignupBtn = ({navigate, children, id}: LoginSignupBtnProps) => {
 
 export default LoginSignupBtn;
 
+const LoginButton = css`
+  background-color: ${({theme}) => theme.primary};
+`;
+
+const SignupButton = css`
+  background-color: ${({theme}) => theme.white};
+  border: 1px solid ${({theme}) => theme.primary};
+`;
+
 const Button = styled.TouchableOpacity<ButtonProps>`
   width: 100%;
   margin-bottom: 15px;
   border-radius: 8px;
-  ${({id}) =>
-    id === 'login'
-      ? css`
-          background-color: ${({theme}) => theme.primary};
-        `
-      : css`
-          background-color: ${({theme}) => theme.white};
-          border: 1px solid ${({theme}) => theme.primary};
-        `}
+  ${({id}) => (id === 'login' ? LoginButton : SignupButton)}
 `;
