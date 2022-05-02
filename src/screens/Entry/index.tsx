@@ -4,7 +4,7 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from 'types/navigation';
 import styled, {css} from 'styled-components/native';
 import LoginSignupBtn from 'components/LoginSignupBtn';
-import logo from '/Users/kimminju/Desktop/puzzleAI/Puzzleai/src/assets/images/logo.png';
+import logo from 'assets/images/logo.png';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Entry'>;
 
