@@ -1,11 +1,14 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from 'types/navigation';
 import styled, {css} from 'styled-components/native';
 import API from 'config';
+import eyeOff from 'assets/images/eye_off.png';
+import eyeOn from 'assets/images/eye_on.png';
 
 type SignupProps = NativeStackScreenProps<RootStackParamList, 'Signup'>;
+
 interface ButtonProps {
   bgColor: string;
 }
@@ -18,68 +21,83 @@ const Signup = ({navigation}: SignupProps) => {
     password: '',
     passwordCheck: '',
   });
-  const [checkEmailUniqueness, setCheckEmailUniqueness] = useState('');
+  const [isEmailUnique, setIsEmailUnique] = useState(true);
+  const initialRender = useRef(true);
+  const [isEverythingValid, setIsEverythingValid] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showPwCheck, setShowPwCheck] = useState(false);
 
   const {lastName, firstName, email, password, passwordCheck} = userInput;
 
-  const handleUserInput = (key: string) => (text: string) => {
+  const handleShowPw = () => {
+    setShowPw(prev => !prev);
+  };
+
+  const handleShowPwCheck = () => {
+    setShowPwCheck(prev => !prev);
+  };
+
+  const handleUserInput = (text: string, key: string) => {
     setUserInput({...userInput, [key]: text});
   };
 
   useEffect(() => {
-    const fetchData = () => {
-      fetch(`API.signup?email=${email}`)
-        .then(res => res.json())
-        .then(data => setCheckEmailUniqueness(data.email));
-    };
-    const debounce = setTimeout(() => fetchData(), 500);
-    return () => clearTimeout(debounce);
+    if (initialRender.current) {
+      initialRender.current = false;
+    } else {
+      const checkIsUnique = () => {
+        fetch(`${API.signup}?email=${email}`)
+          .then(res => res.json())
+          .then(data => {
+            data.email === 'This field must be unique' &&
+              setIsEmailUnique(false);
+          });
+      };
+      const debounce = setTimeout(() => checkIsUnique(), 500);
+      return () => clearTimeout(debounce);
+    }
   }, [email]);
 
-  const checkEmailValidation = (emailAddress: string) => {
+  const validateEmail = useMemo(() => {
     const emailRegex =
       /([\w-.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/;
-    return emailRegex.test(emailAddress);
-  };
+    return emailRegex.test(email);
+  }, [email]);
 
-  const emailErrorMsg = checkEmailValidation(email)
-    ? checkEmailUniqueness === 'This field must be unique.'
-      ? '존재하는 이메일 주소입니다.'
-      : ''
-    : '잘못된 이메일 형식입니다.';
-
-  const checkPwValidation = (pw: string) => {
+  const validatePw = useMemo(() => {
     const pwRegex = /^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,25}$/;
-    return pwRegex.test(pw) && pw.length > 0;
-  };
+    return pwRegex.test(password);
+  }, [password]);
 
-  const validator = {
-    email:
-      checkEmailValidation(email) &&
-      checkEmailUniqueness !== 'This field must be unique',
-    password: checkPwValidation(password),
-    passwordCheck: password === passwordCheck,
-  };
+  const validatePwCheck = useMemo(() => {
+    return password === passwordCheck;
+  }, [password, passwordCheck]);
 
-  const isEverythingValid =
-    lastName &&
-    firstName &&
-    validator.email &&
-    validator.password &&
-    validator.passwordCheck;
+  useEffect(() => {
+    if (
+      lastName &&
+      firstName &&
+      validateEmail &&
+      validatePw &&
+      validatePwCheck
+    ) {
+      setIsEverythingValid(true);
+    }
+  }, [lastName, firstName, validateEmail, validatePw, validatePwCheck]);
 
   const submitUserInput = () => {
-    fetch(API.signup, {
+    fetch(`${API.signup}`, {
       method: 'POST',
       body: JSON.stringify({
         last_name: lastName,
         first_name: firstName,
-        email: email,
-        password: password,
+        email,
+        password,
       }),
     })
       .then(res => res.json())
       .then(data => data.email === email && navigation.navigate('Login'));
+    console.log('submit');
   };
 
   return (
@@ -92,7 +110,9 @@ const Signup = ({navigation}: SignupProps) => {
               placeholder="성을 입력해주세요"
               autoCorrect={false}
               value={userInput.lastName}
-              onChangeText={handleUserInput('lastName')}
+              onChangeText={(text: string) => {
+                handleUserInput(text, 'lastName');
+              }}
             />
           </NameWrapper>
           <NameWrapper>
@@ -101,7 +121,9 @@ const Signup = ({navigation}: SignupProps) => {
               placeholder="이름을 입력해주세요"
               autoCorrect={false}
               value={userInput.firstName}
-              onChangeText={handleUserInput('firstName')}
+              onChangeText={(text: string) => {
+                handleUserInput(text, 'firstName');
+              }}
             />
           </NameWrapper>
         </Name>
@@ -112,38 +134,58 @@ const Signup = ({navigation}: SignupProps) => {
             keyboardType="email-address"
             autoCapitalize="none"
             value={userInput.email}
-            onChangeText={handleUserInput('email')}
+            onChangeText={(text: string) => {
+              handleUserInput(text, 'email');
+            }}
           />
-          {email.length > 0 && <ErrorMsg>{emailErrorMsg}</ErrorMsg>}
+          {email.length > 0 && (
+            <ErrorMsg>
+              {validateEmail
+                ? !isEmailUnique && '존재하는 이메일 주소입니다.'
+                : '잘못된 이메일 형식입니다.'}
+            </ErrorMsg>
+          )}
         </InputWrapper>
         <InputWrapper>
           <Title>비밀번호</Title>
-          <InputBox
-            placeholder="비밀번호를 입력해주세요"
-            textContentType="password"
-            secureTextEntry
-            value={userInput.password}
-            onChangeText={handleUserInput('password')}
-          />
+          <InputWithIcon>
+            <InputBox
+              placeholder="비밀번호를 입력해주세요"
+              textContentType="password"
+              secureTextEntry={!showPw}
+              value={userInput.password}
+              onChangeText={(text: string) => {
+                handleUserInput(text, 'password');
+              }}
+            />
+            <IconWrapper onPress={handleShowPw}>
+              <Icon source={showPw ? eyeOn : eyeOff} />
+            </IconWrapper>
+          </InputWithIcon>
           {password.length > 0 && (
             <ErrorMsg>
-              {validator.password
-                ? ''
-                : '숫자와 영문자,특수문자 조합 8자를 입력해주세요'}
+              {!validatePw && '숫자와 영문자,특수문자 조합 8자를 입력해주세요'}
             </ErrorMsg>
           )}
         </InputWrapper>
         <InputWrapper>
           <Title>비밀번호 확인</Title>
-          <InputBox
-            placeholder="비밀번호를 다시 입력해주세요"
-            secureTextEntry
-            value={userInput.passwordCheck}
-            onChangeText={handleUserInput('passwordCheck')}
-          />
+          <InputWithIcon>
+            <InputBox
+              placeholder="비밀번호를 다시 입력해주세요"
+              secureTextEntry={!showPwCheck}
+              value={userInput.passwordCheck}
+              onChangeText={(text: string) => {
+                handleUserInput(text, 'passwordCheck');
+              }}
+            />
+            <IconWrapper onPress={handleShowPwCheck}>
+              <Icon source={showPwCheck ? eyeOn : eyeOff} />
+            </IconWrapper>
+          </InputWithIcon>
           {password.length > 0 && passwordCheck.length > 0 && (
             <ErrorMsg>
-              {validator.passwordCheck ? '' : '비밀번호가 일치하지 않습니다.'}
+              {!validatePwCheck && '비밀번호가 일치하지 않습니다.'}
             </ErrorMsg>
           )}
         </InputWrapper>
@@ -229,4 +271,21 @@ const CompleteSignupText = styled.Text`
   text-align: center;
   font-size: ${({theme}) => theme.fontRegular};
   font-family: 'NotoSansKR-Bold';
+`;
+
+const InputWithIcon = styled.View`
+  justify-content: center;
+`;
+
+const IconWrapper = styled.TouchableOpacity`
+  position: absolute;
+  right: 15.3px;
+  width: 18px;
+  height: 14px;
+`;
+
+const Icon = styled.Image`
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 `;
