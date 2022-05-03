@@ -22,8 +22,6 @@ const Signup = ({navigation}: SignupProps) => {
     passwordCheck: '',
   });
   const [isEmailUnique, setIsEmailUnique] = useState(true);
-  const initialRender = useRef(true);
-  const [isEverythingValid, setIsEverythingValid] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showPwCheck, setShowPwCheck] = useState(false);
 
@@ -42,8 +40,8 @@ const Signup = ({navigation}: SignupProps) => {
   };
 
   useEffect(() => {
-    if (initialRender.current) {
-      initialRender.current = false;
+    if (!email) {
+      return;
     } else {
       const checkIsUnique = () => {
         fetch(`${API.signup}?email=${email}`)
@@ -73,16 +71,10 @@ const Signup = ({navigation}: SignupProps) => {
     return password === passwordCheck;
   }, [password, passwordCheck]);
 
-  useEffect(() => {
-    if (
-      lastName &&
-      firstName &&
-      validateEmail &&
-      validatePw &&
-      validatePwCheck
-    ) {
-      setIsEverythingValid(true);
-    }
+  const isEverythingValid = useMemo(() => {
+    const validateAll =
+      lastName && firstName && validateEmail && validatePw && validatePwCheck;
+    return validateAll;
   }, [lastName, firstName, validateEmail, validatePw, validatePwCheck]);
 
   const submitUserInput = () => {
@@ -97,7 +89,6 @@ const Signup = ({navigation}: SignupProps) => {
     })
       .then(res => res.json())
       .then(data => data.email === email && navigation.navigate('Login'));
-    console.log('submit');
   };
 
   return (
@@ -189,7 +180,6 @@ const Signup = ({navigation}: SignupProps) => {
             </ErrorMsg>
           )}
         </InputWrapper>
-
         <CompleteSignupBtn
           disabled={!isEverythingValid}
           onPress={() => {
@@ -287,5 +277,4 @@ const IconWrapper = styled.TouchableOpacity`
 const Icon = styled.Image`
   width: 100%;
   height: 100%;
-  object-fit: contain;
 `;
