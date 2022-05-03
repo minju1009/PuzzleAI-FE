@@ -27,7 +27,7 @@ const Navigator = () => {
         <RootStack.Screen
           name="Login"
           component={Login}
-          options={{headerShown: false}}
+          options={{title: ''}}
         />
         <RootStack.Screen
           name="Main"
