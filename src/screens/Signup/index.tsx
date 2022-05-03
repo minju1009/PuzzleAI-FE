@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from 'types/navigation';
@@ -21,7 +21,7 @@ const Signup = ({navigation}: SignupProps) => {
     password: '',
     passwordCheck: '',
   });
-  const [isEmailUnique, setIsEmailUnique] = useState(true);
+  const [isEmailUnique, setIsEmailUnique] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showPwCheck, setShowPwCheck] = useState(false);
 
@@ -42,18 +42,23 @@ const Signup = ({navigation}: SignupProps) => {
   useEffect(() => {
     if (!email) {
       return;
-    } else {
-      const checkIsUnique = () => {
-        fetch(`${API.signup}?email=${email}`)
-          .then(res => res.json())
-          .then(data => {
-            data.email === 'This field must be unique' &&
-              setIsEmailUnique(false);
-          });
-      };
-      const debounce = setTimeout(() => checkIsUnique(), 500);
-      return () => clearTimeout(debounce);
     }
+    const checkIsUnique = () => {
+      fetch(`${API.search}?email=${email}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          data.message === 'This email already exists'
+            ? setIsEmailUnique(false)
+            : setIsEmailUnique(true);
+        });
+    };
+    const debounce = setTimeout(() => checkIsUnique(), 500);
+    return () => clearTimeout(debounce);
   }, [email]);
 
   const validateEmail = useMemo(() => {
@@ -80,6 +85,10 @@ const Signup = ({navigation}: SignupProps) => {
   const submitUserInput = () => {
     fetch(`${API.signup}`, {
       method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         last_name: lastName,
         first_name: firstName,
@@ -131,9 +140,9 @@ const Signup = ({navigation}: SignupProps) => {
           />
           {email.length > 0 && (
             <ErrorMsg>
-              {validateEmail
-                ? !isEmailUnique && '존재하는 이메일 주소입니다.'
-                : '잘못된 이메일 형식입니다.'}
+              {isEmailUnique
+                ? !validateEmail && '잘못된 이메일 형식입니다'
+                : '이미 존재하는 이메일입니다.'}
             </ErrorMsg>
           )}
         </InputWrapper>

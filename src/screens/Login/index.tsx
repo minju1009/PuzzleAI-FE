@@ -1,22 +1,25 @@
-import React, {useState} from 'react';
+import React, {useContext, useState} from 'react';
+import {Alert, Platform} from 'react-native';
+import {ScrollView} from 'react-native-gesture-handler';
 import styled, {css} from 'styled-components/native';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from 'types/navigation';
-import logo from '/assets/images/logo.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginSignupBtn from 'components/LoginSignupBtn';
-import {Platform} from 'react-native';
+import {AuthContext, AuthContextType} from 'AuthContext';
+import API from 'config';
+import logo from '/assets/images/logo.png';
 import eyeOn from 'assets/images/eye_on.png';
 import eyeOff from 'assets/images/eye_off.png';
-import {ScrollView} from 'react-native-gesture-handler';
 
-type LoginProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
-
-const Login = ({navigation}: LoginProps) => {
+const Login = () => {
   const [userInput, setUserInput] = useState({
     email: '',
     password: '',
   });
   const [showPw, setShowPw] = useState(false);
+
+  const {email, password} = userInput;
+
+  const authContext = useContext(AuthContext) as AuthContextType;
 
   const handleShowPw = () => {
     setShowPw(prev => !prev);
@@ -24,6 +27,42 @@ const Login = ({navigation}: LoginProps) => {
 
   const handleUserInput = (text: string, key: string) => {
     setUserInput({...userInput, [key]: text});
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('이메일과 패스워드를 입력하세요');
+    }
+    try {
+      const response = await fetch(`${API.login}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      const data = await response.json();
+      if (data.token) {
+        storeToken('token', data.token);
+        authContext.setLoggedIn(true);
+      } else {
+        Alert.alert('아이디와 비밀번호를 다시 확인해 주세요');
+      }
+    } catch (error) {
+      throw new Error('API fetch error');
+    }
+  };
+
+  const storeToken = async (key: string, value: string) => {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      throw new Error('token 저장 실패');
+    }
   };
 
   return (
@@ -64,7 +103,7 @@ const Login = ({navigation}: LoginProps) => {
         </FormContainer>
       </ScrollView>
       <BtnContainer>
-        <LoginSignupBtn id="login" navigate={() => navigation.navigate('Main')}>
+        <LoginSignupBtn id="login" navigate={() => handleLogin()}>
           <LoginText>로그인</LoginText>
         </LoginSignupBtn>
       </BtnContainer>
