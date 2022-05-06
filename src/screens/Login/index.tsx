@@ -1,22 +1,23 @@
-import React, {useState} from 'react';
+import React, {useContext, useState} from 'react';
+import {Alert, Platform} from 'react-native';
+import {ScrollView} from 'react-native-gesture-handler';
 import styled, {css} from 'styled-components/native';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from 'types/navigation';
-import logo from '/assets/images/logo.png';
 import LoginSignupBtn from 'components/LoginSignupBtn';
-import {Platform} from 'react-native';
+import {AuthContext} from 'AuthContext';
+import logo from '/assets/images/logo.png';
 import eyeOn from 'assets/images/eye_on.png';
 import eyeOff from 'assets/images/eye_off.png';
-import {ScrollView} from 'react-native-gesture-handler';
 
-type LoginProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
-
-const Login = ({navigation}: LoginProps) => {
+const Login = () => {
   const [userInput, setUserInput] = useState({
     email: '',
     password: '',
   });
   const [showPw, setShowPw] = useState(false);
+
+  const {email, password} = userInput;
+
+  const {login} = useContext(AuthContext);
 
   const handleShowPw = () => {
     setShowPw(prev => !prev);
@@ -24,6 +25,17 @@ const Login = ({navigation}: LoginProps) => {
 
   const handleUserInput = (text: string, key: string) => {
     setUserInput({...userInput, [key]: text});
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('이메일과 패스워드를 입력하세요');
+    }
+    try {
+      login(email, password);
+    } catch (error) {
+      throw new Error('API fetch error');
+    }
   };
 
   return (
@@ -64,7 +76,7 @@ const Login = ({navigation}: LoginProps) => {
         </FormContainer>
       </ScrollView>
       <BtnContainer>
-        <LoginSignupBtn id="login" navigate={() => navigation.navigate('Main')}>
+        <LoginSignupBtn id="login" navigate={() => handleLogin()}>
           <LoginText>로그인</LoginText>
         </LoginSignupBtn>
       </BtnContainer>

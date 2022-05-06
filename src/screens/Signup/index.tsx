@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {Platform} from 'react-native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from 'types/navigation';
@@ -6,6 +6,7 @@ import styled, {css} from 'styled-components/native';
 import API from 'config';
 import eyeOff from 'assets/images/eye_off.png';
 import eyeOn from 'assets/images/eye_on.png';
+import {ScrollView} from 'react-native-gesture-handler';
 
 type SignupProps = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
@@ -21,7 +22,7 @@ const Signup = ({navigation}: SignupProps) => {
     password: '',
     passwordCheck: '',
   });
-  const [isEmailUnique, setIsEmailUnique] = useState(true);
+  const [isEmailUnique, setIsEmailUnique] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showPwCheck, setShowPwCheck] = useState(false);
 
@@ -42,18 +43,23 @@ const Signup = ({navigation}: SignupProps) => {
   useEffect(() => {
     if (!email) {
       return;
-    } else {
-      const checkIsUnique = () => {
-        fetch(`${API.signup}?email=${email}`)
-          .then(res => res.json())
-          .then(data => {
-            data.email === 'This field must be unique' &&
-              setIsEmailUnique(false);
-          });
-      };
-      const debounce = setTimeout(() => checkIsUnique(), 500);
-      return () => clearTimeout(debounce);
     }
+    const checkIsUnique = () => {
+      fetch(`${API.search}?email=${email}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          data.message === 'This email already exists'
+            ? setIsEmailUnique(false)
+            : setIsEmailUnique(true);
+        });
+    };
+    const debounce = setTimeout(() => checkIsUnique(), 500);
+    return () => clearTimeout(debounce);
   }, [email]);
 
   const validateEmail = useMemo(() => {
@@ -80,6 +86,10 @@ const Signup = ({navigation}: SignupProps) => {
   const submitUserInput = () => {
     fetch(`${API.signup}`, {
       method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         last_name: lastName,
         first_name: firstName,
@@ -92,117 +102,115 @@ const Signup = ({navigation}: SignupProps) => {
   };
 
   return (
-    <ScrollView>
-      <ScreenContainer>
-        <Name>
-          <NameWrapper>
-            <Title>성</Title>
+    <ScreenContainer behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView>
+        <FormContainer>
+          <Name>
+            <NameWrapper>
+              <Title>성</Title>
+              <InputBox
+                placeholder="성을 입력해주세요"
+                autoCorrect={false}
+                value={userInput.lastName}
+                onChangeText={(text: string) => {
+                  handleUserInput(text, 'lastName');
+                }}
+              />
+            </NameWrapper>
+            <NameWrapper>
+              <Title>이름</Title>
+              <InputBox
+                placeholder="이름을 입력해주세요"
+                autoCorrect={false}
+                value={userInput.firstName}
+                onChangeText={(text: string) => {
+                  handleUserInput(text, 'firstName');
+                }}
+              />
+            </NameWrapper>
+          </Name>
+          <InputWrapper>
+            <Title>이메일</Title>
             <InputBox
-              placeholder="성을 입력해주세요"
-              autoCorrect={false}
-              value={userInput.lastName}
+              placeholder="이메일을 입력해주세요"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={userInput.email}
               onChangeText={(text: string) => {
-                handleUserInput(text, 'lastName');
+                handleUserInput(text, 'email');
               }}
             />
-          </NameWrapper>
-          <NameWrapper>
-            <Title>이름</Title>
-            <InputBox
-              placeholder="이름을 입력해주세요"
-              autoCorrect={false}
-              value={userInput.firstName}
-              onChangeText={(text: string) => {
-                handleUserInput(text, 'firstName');
-              }}
-            />
-          </NameWrapper>
-        </Name>
-        <InputWrapper>
-          <Title>이메일</Title>
-          <InputBox
-            placeholder="이메일을 입력해주세요"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={userInput.email}
-            onChangeText={(text: string) => {
-              handleUserInput(text, 'email');
-            }}
-          />
-          {email.length > 0 && (
-            <ErrorMsg>
-              {validateEmail
-                ? !isEmailUnique && '존재하는 이메일 주소입니다.'
-                : '잘못된 이메일 형식입니다.'}
-            </ErrorMsg>
-          )}
-        </InputWrapper>
-        <InputWrapper>
-          <Title>비밀번호</Title>
-          <InputWithIcon>
-            <InputBox
-              placeholder="비밀번호를 입력해주세요"
-              textContentType="password"
-              secureTextEntry={!showPw}
-              value={userInput.password}
-              onChangeText={(text: string) => {
-                handleUserInput(text, 'password');
-              }}
-            />
-            <IconWrapper onPress={handleShowPw}>
-              <Icon source={showPw ? eyeOn : eyeOff} />
-            </IconWrapper>
-          </InputWithIcon>
-          {password.length > 0 && (
-            <ErrorMsg>
-              {!validatePw && '숫자와 영문자,특수문자 조합 8자를 입력해주세요'}
-            </ErrorMsg>
-          )}
-        </InputWrapper>
-        <InputWrapper>
-          <Title>비밀번호 확인</Title>
-          <InputWithIcon>
-            <InputBox
-              placeholder="비밀번호를 다시 입력해주세요"
-              secureTextEntry={!showPwCheck}
-              value={userInput.passwordCheck}
-              onChangeText={(text: string) => {
-                handleUserInput(text, 'passwordCheck');
-              }}
-            />
-            <IconWrapper onPress={handleShowPwCheck}>
-              <Icon source={showPwCheck ? eyeOn : eyeOff} />
-            </IconWrapper>
-          </InputWithIcon>
-          {password.length > 0 && passwordCheck.length > 0 && (
-            <ErrorMsg>
-              {!validatePwCheck && '비밀번호가 일치하지 않습니다.'}
-            </ErrorMsg>
-          )}
-        </InputWrapper>
-        <CompleteSignupBtn
-          disabled={!isEverythingValid}
-          onPress={() => {
-            submitUserInput();
-          }}
-          bgColor={isEverythingValid ? '#065e85' : '#c4c4c4'}>
-          <CompleteSignupText>가입완료</CompleteSignupText>
-        </CompleteSignupBtn>
-      </ScreenContainer>
-    </ScrollView>
+            {email.length > 0 && (
+              <ErrorMsg>
+                {isEmailUnique
+                  ? !validateEmail && '잘못된 이메일 형식입니다'
+                  : '이미 존재하는 이메일입니다.'}
+              </ErrorMsg>
+            )}
+          </InputWrapper>
+          <InputWrapper>
+            <Title>비밀번호</Title>
+            <InputWithIcon>
+              <InputBox
+                placeholder="비밀번호를 입력해주세요"
+                textContentType="password"
+                secureTextEntry={!showPw}
+                value={userInput.password}
+                onChangeText={(text: string) => {
+                  handleUserInput(text, 'password');
+                }}
+              />
+              <IconWrapper onPress={handleShowPw}>
+                <Icon source={showPw ? eyeOn : eyeOff} />
+              </IconWrapper>
+            </InputWithIcon>
+            {password.length > 0 && (
+              <ErrorMsg>
+                {!validatePw &&
+                  '숫자와 영문자,특수문자 조합 8자를 입력해주세요'}
+              </ErrorMsg>
+            )}
+          </InputWrapper>
+          <InputWrapper>
+            <Title>비밀번호 확인</Title>
+            <InputWithIcon>
+              <InputBox
+                placeholder="비밀번호를 다시 입력해주세요"
+                secureTextEntry={!showPwCheck}
+                value={userInput.passwordCheck}
+                onChangeText={(text: string) => {
+                  handleUserInput(text, 'passwordCheck');
+                }}
+              />
+              <IconWrapper onPress={handleShowPwCheck}>
+                <Icon source={showPwCheck ? eyeOn : eyeOff} />
+              </IconWrapper>
+            </InputWithIcon>
+            {password.length > 0 && passwordCheck.length > 0 && (
+              <ErrorMsg>
+                {!validatePwCheck && '비밀번호가 일치하지 않습니다.'}
+              </ErrorMsg>
+            )}
+          </InputWrapper>
+        </FormContainer>
+      </ScrollView>
+      <CompleteSignupBtn
+        disabled={!isEverythingValid}
+        onPress={() => {
+          submitUserInput();
+        }}
+        bgColor={isEverythingValid ? '#065e85' : '#c4c4c4'}>
+        <CompleteSignupText>가입완료</CompleteSignupText>
+      </CompleteSignupBtn>
+    </ScreenContainer>
   );
 };
 
 export default Signup;
 
-const ScrollView = styled.ScrollView`
+const ScreenContainer = styled.KeyboardAvoidingView`
   flex: 1;
-  background-color: white;
-`;
-
-const ScreenContainer = styled.View`
-  flex: 1;
-  padding: 30px 27px 50px 33px;
+  padding: 30px 27px 60px 33px;
   background-color: white;
   justify-content: space-between;
 `;
@@ -233,6 +241,10 @@ const ErrorMsg = styled.Text`
   font-size: 12px;
   line-height: ${({theme}) => theme.lineHeightMicro};
   font-family: 'NotoSansKR-Medium';
+`;
+
+const FormContainer = styled.View`
+  flex: 4;
 `;
 
 const Name = styled.View`

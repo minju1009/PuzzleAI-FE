@@ -1,23 +1,10 @@
 import React from 'react';
 import styled from 'styled-components/native';
-import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 
-type RootStackParamList = {
-  Splash: undefined;
-  Login: undefined;
-};
-
-type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
-
-const Splash = ({navigation}: Props) => {
+const Splash = () => {
   return (
     <Container>
-      <MainText
-        onPress={() => {
-          navigation.navigate('Login');
-        }}>
-        Splash
-      </MainText>
+      <MainText>Splash</MainText>
     </Container>
   );
 };
