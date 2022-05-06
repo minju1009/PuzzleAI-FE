@@ -1,6 +1,6 @@
 export const BASE_URL = 'http://192.168.0.17:8000';
 const API = {
-  checkToken: `{BASE_URL}/acounts/`,
+  checkToken: `${BASE_URL}/acounts/`,
   signup: `${BASE_URL}/accounts/signup`,
   search: `${BASE_URL}/accounts/search`,
   login: `${BASE_URL}/accounts/login`,

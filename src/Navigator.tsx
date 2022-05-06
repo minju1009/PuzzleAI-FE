@@ -45,7 +45,6 @@ const Navigator = () => {
               component={Entry}
               options={{headerShown: false}}
             />
-
             <RootStack.Screen
               name="Login"
               component={Login}
