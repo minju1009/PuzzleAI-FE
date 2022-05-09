@@ -22,10 +22,15 @@ const defaultValue = {
 export const AuthContext = createContext<AuthContextType>(defaultValue);
 
 type State = {loggedIn: boolean; isLoading: boolean};
-type Action = {type: 'LOG_IN' | 'VALID_TOKEN' | 'LOADING_DONE'};
+type Action = {type: 'LOG_IN' | 'VALID_TOKEN' | 'LOADING_DONE' | 'LOADING'};
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'LOADING':
+      return {
+        ...state,
+        isLoading: true,
+      };
     case 'LOADING_DONE':
       return {
         ...state,
@@ -48,12 +53,13 @@ function reducer(state: State, action: Action): State {
 export const AuthContextProvider = ({children}: AuthContextProviderProps) => {
   const [userState, dispatch] = useReducer(reducer, {
     loggedIn: false,
-    // TODO : 화면 보기 위해 false로 변경, 완성 후 true로 변경할 것.
     isLoading: false,
   });
 
   const authContext = {
     checkToken: async () => {
+      dispatch({type: 'LOADING'});
+      console.log('loading');
       try {
         const storedToken = await AsyncStorage.getItem('token');
         const response = await fetch(`${API.checkToken}`, {
@@ -64,10 +70,11 @@ export const AuthContextProvider = ({children}: AuthContextProviderProps) => {
           },
         });
         const data = await response.json();
-        if (data.message === 'Valid token') {
-          dispatch({type: 'VALID_TOKEN'});
+        if (response.status === 400) {
+          dispatch({type: 'LOADING_DONE'});
+          throw new Error(data.message);
         }
-        dispatch({type: 'LOADING_DONE'});
+        dispatch({type: 'VALID_TOKEN'});
       } catch (err) {
         throw new Error('Token does not exist in Asyncstorage');
       }
