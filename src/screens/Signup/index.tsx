@@ -224,6 +224,7 @@ const Title = styled.Text`
   font-size: 12px;
   line-height: ${({theme}) => theme.lineHeightMicro};
   font-family: 'NotoSansKR-Medium';
+  color: black;
 `;
 
 const InputBox = styled.TextInput`
@@ -233,6 +234,7 @@ const InputBox = styled.TextInput`
   font-size: ${({theme}) => theme.fontSmall};
   line-height: ${({theme}) => theme.lineHeightMicro};
   font-family: 'NotoSansKR-Medium';
+  color: black;
 `;
 
 const ErrorMsg = styled.Text`

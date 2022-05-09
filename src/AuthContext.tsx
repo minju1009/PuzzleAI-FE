@@ -21,28 +21,25 @@ const defaultValue = {
 
 export const AuthContext = createContext<AuthContextType>(defaultValue);
 
-type InitialState = {loggedIn: boolean; isLoading: boolean};
+type State = {loggedIn: boolean; isLoading: boolean};
 type Action = {type: 'LOG_IN' | 'VALID_TOKEN' | 'LOADING_DONE'};
 
-function reducer(
-  prevState: InitialState,
-  action: Action,
-): {loggedIn: boolean; isLoading: boolean} {
+function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'LOADING_DONE':
       return {
-        ...prevState,
+        ...state,
         isLoading: false,
       };
     case 'VALID_TOKEN':
       return {
-        ...prevState,
+        ...state,
         loggedIn: true,
         isLoading: false,
       };
     case 'LOG_IN':
       return {
-        ...prevState,
+        ...state,
         loggedIn: true,
       };
   }
@@ -51,54 +48,52 @@ function reducer(
 export const AuthContextProvider = ({children}: AuthContextProviderProps) => {
   const [userState, dispatch] = useReducer(reducer, {
     loggedIn: false,
-    isLoading: true,
+    // TODO : 화면 보기 위해 false로 변경, 완성 후 true로 변경할 것.
+    isLoading: false,
   });
 
-  const authContext = React.useMemo(
-    () => ({
-      checkToken: async () => {
-        try {
-          const storedToken = await AsyncStorage.getItem('token');
-          const response = await fetch(`${API.checkToken}`, {
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              Authorization: String(storedToken),
-            },
-          });
-          const data = await response.json();
-          if (data.message === 'Valid token') {
-            dispatch({type: 'VALID_TOKEN'});
-          }
-          dispatch({type: 'LOADING_DONE'});
-        } catch (err) {
-          throw new Error('Token does not exist in Asyncstorage');
-        }
-      },
-      login: async (email: string, password: string) => {
-        const response = await fetch(`${API.login}`, {
-          method: 'POST',
+  const authContext = {
+    checkToken: async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        const response = await fetch(`${API.checkToken}`, {
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
+            Authorization: String(storedToken),
           },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
         });
         const data = await response.json();
-        if (data.token) {
-          storeToken('token', data.token);
-          dispatch({type: 'LOG_IN'});
-        } else {
-          Alert.alert('아이디와 비밀번호를 다시 확인해 주세요');
+        if (data.message === 'Valid token') {
+          dispatch({type: 'VALID_TOKEN'});
         }
-      },
-      userState: userState,
-    }),
-    [userState],
-  );
+        dispatch({type: 'LOADING_DONE'});
+      } catch (err) {
+        throw new Error('Token does not exist in Asyncstorage');
+      }
+    },
+    login: async (email: string, password: string) => {
+      const response = await fetch(`${API.login}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      const data = await response.json();
+      if (data.token) {
+        storeToken('token', data.token);
+        dispatch({type: 'LOG_IN'});
+      } else {
+        Alert.alert('아이디와 비밀번호를 다시 확인해 주세요');
+      }
+    },
+    userState,
+  };
 
   const storeToken = async (key: string, value: string) => {
     try {

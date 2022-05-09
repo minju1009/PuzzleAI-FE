@@ -22,10 +22,11 @@ const Navigator = () => {
     return <Splash />;
   }
 
+  // TODO: Main화면 작업 위해 state변경, 추후 느낌표 삭제할 것
   return (
     <NavigationContainer>
       <RootStack.Navigator initialRouteName="Entry">
-        {userState.loggedIn ? (
+        {!userState.loggedIn ? (
           <>
             <RootStack.Screen
               name="Main"
