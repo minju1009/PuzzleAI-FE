@@ -58,8 +58,8 @@ export const AuthContextProvider = ({children}: AuthContextProviderProps) => {
 
   const authContext = {
     checkToken: async () => {
-      dispatch({type: 'LOADING'});
-      console.log('loading');
+      // dispatch({type: 'LOADING'});
+
       try {
         const storedToken = await AsyncStorage.getItem('token');
         const response = await fetch(`${API.checkToken}`, {
