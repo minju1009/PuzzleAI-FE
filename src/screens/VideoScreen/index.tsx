@@ -17,7 +17,27 @@ const Video = () => {
   const [isFront, setIsFront] = useState(true);
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  const [localStream, setLocalStream] = useState<MediaStream>();
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+  const handleAudio = () => {
+    setAudioOn(!audioOn);
+    localStream &&
+      localStream
+        .getAudioTracks()
+        .forEach(
+          (track: {enabled: boolean}) => (track.enabled = !track.enabled),
+        );
+  };
+
+  const handleVideo = () => {
+    setVideoOn(!videoOn);
+    localStream &&
+      localStream
+        .getVideoTracks()
+        .forEach(
+          (track: {enabled: boolean}) => (track.enabled = !track.enabled),
+        );
+  };
 
   const hangUpCall = () => {
     console.log('hangUp');
@@ -29,27 +49,33 @@ const Video = () => {
     });
   };
 
-  const getUserMedia = (): void => {
-    mediaDevices
-      .getUserMedia({
-        audio: true,
-        video: true,
-        facingMode: isFront ? 'user' : 'environment',
-      })
-      .then(myStream => setLocalStream(myStream));
+  const getUserMedia = async () => {
+    if (localStream) {
+      const tracks = localStream.getTracks();
+      tracks.forEach((track: {stop: () => void}) => track.stop());
+    }
+    const constraints = {
+      audio: true,
+      video: {facingMode: isFront ? 'user' : 'environment'},
+    };
+    const myStream = await mediaDevices.getUserMedia(constraints);
+    setLocalStream(myStream);
   };
 
   useEffect(() => {
-    connectSocket();
     getUserMedia();
+  }, [isFront]);
+
+  useEffect(() => {
+    connectSocket();
   }, []);
 
+  //TODO : remote stream부분의 streamURL 추후 수정하기
   return (
     <ScreenContainer>
       <RTCView
+        objectFit="cover"
         style={styles.remoteVideo}
-        objectFit={'cover'}
-        mirror={true}
         streamURL={localStream && localStream.toURL()}
       />
       <VideoView>
@@ -61,19 +87,23 @@ const Video = () => {
         </RemoteCallerName>
 
         <MyVideoView>
-          {/* <RTCView
-            style={styles.myVideo}
-            streamURL={localStream && localStream.toURL()}
-          /> */}
+          {videoOn ? (
+            <RTCView
+              objectFit="cover"
+              streamURL={localStream && localStream.toURL()}
+              style={styles.myVideo}
+            />
+          ) : (
+            <HumanIconContainer>
+              <HumanIcon source={humanIcon} />
+            </HumanIconContainer>
+          )}
 
-          <HumanIconContainer>
-            <HumanIcon source={humanIcon} />
-          </HumanIconContainer>
           <MyName>
             <BtnText>조나온</BtnText>
             <AudioOffIconContainer>
               {!audioOn && (
-                <IconOrImg source={audioOffIcon} resizeMode="cover" />
+                <IconOrImg source={audioOffIcon} resizeMode="contain" />
               )}
             </AudioOffIconContainer>
           </MyName>
@@ -89,13 +119,13 @@ const Video = () => {
         </ControllerBtn>
         <ControllerBtn
           onPress={() => {
-            setAudioOn(prev => !prev);
+            handleAudio();
           }}>
           <IconOrImg source={audioOn ? audioOnImg : audioOffImg} />
         </ControllerBtn>
         <ControllerBtn
           onPress={() => {
-            setVideoOn(prev => !prev);
+            handleVideo();
           }}>
           <IconOrImg source={videoOn ? videoOnImg : videoOffImg} />
         </ControllerBtn>
@@ -122,6 +152,7 @@ const styles = StyleSheet.create<Styles>({
     flex: 1,
     width: '100%',
     height: '100%',
+    borderRadius: 8,
   },
 });
 
@@ -195,13 +226,19 @@ const MyVideoView = styled.View`
   border-radius: 8px;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
   z-index: 3;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  overflow: hidden;
 `;
 
 const HumanIconContainer = styled.View`
-  flex: 0.78;
   background-color: ${({theme}) => theme.grayTwo};
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
+  width: 100%;
+  height: 100%;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 `;
 
 const HumanIcon = styled.Image`
@@ -211,13 +248,14 @@ const HumanIcon = styled.Image`
 `;
 
 const MyName = styled.View`
-  display: flex;
-  flex: 0.22;
+  position: absolute;
+  bottom: 0px;
   flex-direction: row;
   align-items: center;
   width: 100%;
   height: 32px;
   background-color: black;
+  opacity: 0.65;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
 `;
