@@ -50,10 +50,9 @@ const Video = () => {
 
   useEffect(() => {
     socket.current.onopen = () => {
-      console.log('connection');
+      sendToServer({type: 'join-room', roomID, username});
+      console.log('connected and joined the room.');
     };
-
-    sendToServer({type: 'join-room', roomID, username});
 
     socket.current.onmessage = msg => {
       const data = JSON.parse(msg.data);
