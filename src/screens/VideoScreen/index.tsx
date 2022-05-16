@@ -1,6 +1,13 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {StyleSheet, ViewStyle} from 'react-native';
-import {RTCView, mediaDevices, MediaStream} from 'react-native-webrtc';
+import {
+  RTCView,
+  mediaDevices,
+  MediaStream,
+  RTCPeerConnection,
+  RTCSessionDescription,
+  RTCIceCandidate,
+} from 'react-native-webrtc';
 import styled from 'styled-components/native';
 import audioOffImg from 'assets/images/audio_off_btn.png';
 import audioOffIcon from 'assets/images/audio_off_icon.png';
@@ -9,16 +16,134 @@ import cameraReverse from 'assets/images/camera_revers_btn.png';
 import humanIcon from 'assets/images/human_icon.png';
 import videoOffImg from 'assets/images/video_off_btn.png';
 import videoOnImg from 'assets/images/video_on_btn.png';
-import {io} from 'socket.io-client';
 
 const Video = () => {
-  const WEBSOCKET_URL = 'ws://localhost:8080/ws';
-  const socket = io(WEBSOCKET_URL);
+  const socket = useRef(new WebSocket('wss://54.180.112.202/ws/call/'));
+  const myPeerConnection = useRef(
+    new RTCPeerConnection({iceServers: [{url: 'stun:stun.stunprotocol.org'}]}),
+  );
   const [isFront, setIsFront] = useState(true);
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
+  // TODO: 내 이름은 username, 전화걸 사람은 targetname, 가져오는 기능 추가 필요.
+  const [username, setUsername] = useState('조나온');
+  const [targetname, setTargetname] = useState('김퍼즐');
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
+  const sendToServer = (msg: object) => {
+    const msgJSON = JSON.stringify(msg);
+    socket.current.send(msgJSON);
+    console.log("Sending '" + msg.type + "' message: " + msgJSON);
+  };
+
+  useEffect(() => {
+    getUserMedia();
+  }, [isFront]);
+
+  useEffect(() => {
+    localStream && myPeerConnection.current.addStream(localStream);
+    registerPeerEvents();
+  }, []);
+
+  useEffect(() => {
+    socket.current.onopen = () => {
+      console.log('connection');
+    };
+
+    socket.current.onmessage = msg => {
+      const data = JSON.parse(msg.data);
+      switch (data.type) {
+        case 'welcome':
+          sendCall();
+          break;
+        case 'video-offer':
+          handleOffer(data.offer);
+          break;
+        case 'video-answer':
+          handleAnswer(data.answer);
+          break;
+        case 'new-ice-candidate':
+          handleCandidate(data.candidate);
+          break;
+        case 'hang-up':
+          closeVideoCall();
+          break;
+        default:
+          console.log(`unknown message received : ${data}`);
+          break;
+      }
+    };
+
+    socket.current.onerror = err => {
+      console.log('Got an error', err);
+    };
+  }, []);
+
+  const getUserMedia = async () => {
+    if (localStream) {
+      const tracks = localStream.getTracks();
+      tracks.forEach((track: {stop: () => void}) => track.stop());
+    }
+    const constraints = {
+      audio: true,
+      video: {facingMode: isFront ? 'user' : 'environment'},
+    };
+    const myStream = await mediaDevices.getUserMedia(constraints);
+    setLocalStream(myStream);
+  };
+
+  const registerPeerEvents = () => {
+    myPeerConnection.current.onaddstream = event => {
+      setRemoteStream(event.stream);
+    };
+
+    myPeerConnection.current.onicecandidate = event => {
+      if (event.candidate) {
+        sendToServer({
+          type: 'new-ice-candidate',
+          candidate: event.candidate,
+          targetname,
+        });
+      }
+    };
+  };
+
+  // 현재 나한테 들어오는 call이 없으면 내가 전화를 건다.
+  const sendCall = async () => {
+    const offer = await myPeerConnection.current.createOffer();
+    await myPeerConnection.current.setLocalDescription(offer);
+    sendToServer({type: 'video-offer', offer, targetname, username});
+  };
+
+  const handleOffer = async (offer: RTCSessionDescription) => {
+    myPeerConnection.current.setRemoteDescription(offer);
+    const answer = await myPeerConnection.current.createAnswer();
+    myPeerConnection.current.setLocalDescription(answer);
+    sendToServer({type: 'video-answer', answer, targetname, username});
+  };
+
+  const handleAnswer = (answer: RTCSessionDescription) => {
+    myPeerConnection.current.setRemoteDescription(answer);
+  };
+
+  const handleCandidate = (candidate: RTCIceCandidate) => {
+    myPeerConnection.current.addIceCandidate(candidate);
+  };
+
+  const hangUpCall = () => {
+    closeVideoCall();
+    sendToServer({type: 'hang-up', username, targetname});
+  };
+
+  const closeVideoCall = () => {
+    setRemoteStream(null);
+    setLocalStream(null);
+    myPeerConnection.current.onicecandidate = null;
+    myPeerConnection.current.ontrack = null;
+  };
+
+  // handling streams
   const handleAudio = () => {
     setAudioOn(!audioOn);
     localStream &&
@@ -39,51 +164,19 @@ const Video = () => {
         );
   };
 
-  const hangUpCall = () => {
-    console.log('hangUp');
-  };
-
-  const connectSocket = () => {
-    socket.on('connect', () => {
-      console.log('connected');
-    });
-  };
-
-  const getUserMedia = async () => {
-    if (localStream) {
-      const tracks = localStream.getTracks();
-      tracks.forEach((track: {stop: () => void}) => track.stop());
-    }
-    const constraints = {
-      audio: true,
-      video: {facingMode: isFront ? 'user' : 'environment'},
-    };
-    const myStream = await mediaDevices.getUserMedia(constraints);
-    setLocalStream(myStream);
-  };
-
-  useEffect(() => {
-    getUserMedia();
-  }, [isFront]);
-
-  useEffect(() => {
-    connectSocket();
-  }, []);
-
-  //TODO : remote stream부분의 streamURL 추후 수정하기
   return (
     <ScreenContainer>
       <RTCView
         objectFit="cover"
         style={styles.remoteVideo}
-        streamURL={localStream && localStream.toURL()}
+        streamURL={remoteStream && remoteStream.toURL()}
       />
       <VideoView>
         <CloseCallBtn onPress={() => hangUpCall()}>
           <BtnText>나가기</BtnText>
         </CloseCallBtn>
         <RemoteCallerName>
-          <BtnText>김퍼즐</BtnText>
+          <BtnText>{targetname}</BtnText>
         </RemoteCallerName>
 
         <MyVideoView>
@@ -100,7 +193,7 @@ const Video = () => {
           )}
 
           <MyName>
-            <BtnText>조나온</BtnText>
+            <BtnText>{username}</BtnText>
             <AudioOffIconContainer>
               {!audioOn && (
                 <IconOrImg source={audioOffIcon} resizeMode="contain" />
