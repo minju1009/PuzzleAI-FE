@@ -22,12 +22,14 @@ const Video = () => {
   const myPeerConnection = useRef(
     new RTCPeerConnection({iceServers: [{url: 'stun:stun.stunprotocol.org'}]}),
   );
+  // TODO : roomID 설정 로직 필요
+  const roomID = useRef('room-1');
   const [isFront, setIsFront] = useState(true);
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  // TODO: 내 이름은 username, 전화걸 사람은 targetname, 가져오는 기능 추가 필요.
+  //TODO : 로그인한 user의 이름 가져오는 로직 필요
   const [username, setUsername] = useState('조나온');
-  const [targetname, setTargetname] = useState('김퍼즐');
+  const [targetname, setTargetname] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
@@ -44,21 +46,23 @@ const Video = () => {
   useEffect(() => {
     localStream && myPeerConnection.current.addStream(localStream);
     registerPeerEvents();
-  }, []);
+  }, [localStream]);
 
   useEffect(() => {
     socket.current.onopen = () => {
       console.log('connection');
     };
 
+    sendToServer({type: 'join-room', roomID, username});
+
     socket.current.onmessage = msg => {
       const data = JSON.parse(msg.data);
       switch (data.type) {
         case 'welcome':
-          sendCall();
+          sendCall(data.name);
           break;
         case 'video-offer':
-          handleOffer(data.offer);
+          handleOffer(data.offer, data.name);
           break;
         case 'video-answer':
           handleAnswer(data.answer);
@@ -77,6 +81,10 @@ const Video = () => {
 
     socket.current.onerror = err => {
       console.log('Got an error', err);
+    };
+
+    socket.current.onclose = () => {
+      console.log('Server was closed');
     };
   }, []);
 
@@ -103,24 +111,27 @@ const Video = () => {
         sendToServer({
           type: 'new-ice-candidate',
           candidate: event.candidate,
-          targetname,
+          roomID,
         });
       }
     };
   };
 
-  // 현재 나한테 들어오는 call이 없으면 내가 전화를 건다.
-  const sendCall = async () => {
+  const sendCall = async (name: string) => {
+    console.log(`${name} joined the room`);
+    setTargetname(name);
     const offer = await myPeerConnection.current.createOffer();
     await myPeerConnection.current.setLocalDescription(offer);
-    sendToServer({type: 'video-offer', offer, targetname, username});
+    sendToServer({type: 'video-offer', offer, roomID});
   };
 
-  const handleOffer = async (offer: RTCSessionDescription) => {
+  const handleOffer = async (offer: RTCSessionDescription, name: string) => {
+    console.log(`${name} is calling you`);
+    setTargetname(name);
     myPeerConnection.current.setRemoteDescription(offer);
     const answer = await myPeerConnection.current.createAnswer();
     myPeerConnection.current.setLocalDescription(answer);
-    sendToServer({type: 'video-answer', answer, targetname, username});
+    sendToServer({type: 'video-answer', answer, roomID});
   };
 
   const handleAnswer = (answer: RTCSessionDescription) => {
@@ -133,7 +144,7 @@ const Video = () => {
 
   const hangUpCall = () => {
     closeVideoCall();
-    sendToServer({type: 'hang-up', username, targetname});
+    sendToServer({type: 'hang-up', roomID});
   };
 
   const closeVideoCall = () => {
@@ -175,9 +186,11 @@ const Video = () => {
         <CloseCallBtn onPress={() => hangUpCall()}>
           <BtnText>나가기</BtnText>
         </CloseCallBtn>
-        <RemoteCallerName>
-          <BtnText>{targetname}</BtnText>
-        </RemoteCallerName>
+        {targetname && (
+          <RemoteCallerName>
+            <BtnText>{targetname}</BtnText>
+          </RemoteCallerName>
+        )}
 
         <MyVideoView>
           {videoOn ? (
