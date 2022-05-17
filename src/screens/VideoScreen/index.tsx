@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {StyleSheet, ViewStyle} from 'react-native';
+import {Animated, StyleSheet, ViewStyle, PanResponder} from 'react-native';
 import {
   RTCView,
   mediaDevices,
@@ -22,7 +22,7 @@ const Video = () => {
   const myPeerConnection = useRef(
     new RTCPeerConnection({iceServers: [{url: 'stun:stun.stunprotocol.org'}]}),
   );
-  // TODO : roomID 설정 로직 필요
+  //TODO : roomID 설정 로직 필요
   const roomID = useRef('room-1');
   const [isFront, setIsFront] = useState(true);
   const [audioOn, setAudioOn] = useState(true);
@@ -153,7 +153,6 @@ const Video = () => {
     myPeerConnection.current.ontrack = null;
   };
 
-  // handling streams
   const handleAudio = () => {
     setAudioOn(!audioOn);
     localStream &&
@@ -174,6 +173,33 @@ const Video = () => {
         );
   };
 
+  // 애니메이션 담당하는 객체 생성, ValueXY는 벡터 값을 사용할 수 있게 해준다.
+  const pan = useRef(new Animated.ValueXY()).current;
+
+  // panResponder을 만들어 애니메이션이 적용가능한 View에 붙여준다.
+  const panResponder = useRef(
+    PanResponder.create({
+      // 유저가 손가락으로 움직이기 시작할때 활성화시킨다.
+      onMoveShouldSetPanResponder: () => true,
+      // gesture가 시작되었음을 유저에게 알려주는 동시에, value를 둘다 0으로 초기화한다.
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: pan.x._value,
+          y: pan.y._value,
+        });
+      },
+      // 움직인 누적거리 - 델타값 사용(처음~나중)
+      onPanResponderMove: (_, gesture) => {
+        pan.x.setValue(gesture.dx), pan.y.setValue(gesture.dy);
+      },
+      // 유저가 손가락을 놓았을 때, offset value를 기존 value로 합치고, offset을 zero로 만든다.
+      // offset을 0으로 설정해야 dx,dy를 구해서 transform에 전달할 수 있다.
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+      },
+    }),
+  ).current;
+
   return (
     <ScreenContainer>
       <RTCView
@@ -190,29 +216,34 @@ const Video = () => {
             <BtnText>{targetname}</BtnText>
           </RemoteCallerName>
         )}
+        <Animated.View
+          style={{
+            transform: [{translateX: pan.x}, {translateY: pan.y}],
+          }}
+          {...panResponder.panHandlers}>
+          <MyVideoView>
+            {videoOn ? (
+              <RTCView
+                objectFit="cover"
+                streamURL={localStream && localStream.toURL()}
+                style={styles.myVideo}
+              />
+            ) : (
+              <HumanIconContainer>
+                <HumanIcon source={humanIcon} />
+              </HumanIconContainer>
+            )}
 
-        <MyVideoView>
-          {videoOn ? (
-            <RTCView
-              objectFit="cover"
-              streamURL={localStream && localStream.toURL()}
-              style={styles.myVideo}
-            />
-          ) : (
-            <HumanIconContainer>
-              <HumanIcon source={humanIcon} />
-            </HumanIconContainer>
-          )}
-
-          <MyName>
-            <BtnText>{username}</BtnText>
-            <AudioOffIconContainer>
-              {!audioOn && (
-                <IconOrImg source={audioOffIcon} resizeMode="contain" />
-              )}
-            </AudioOffIconContainer>
-          </MyName>
-        </MyVideoView>
+            <MyName>
+              <BtnText>{username}</BtnText>
+              <AudioOffIconContainer>
+                {!audioOn && (
+                  <IconOrImg source={audioOffIcon} resizeMode="contain" />
+                )}
+              </AudioOffIconContainer>
+            </MyName>
+          </MyVideoView>
+        </Animated.View>
       </VideoView>
 
       <ControllerView>
